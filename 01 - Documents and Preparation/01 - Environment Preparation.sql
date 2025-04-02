@@ -106,50 +106,35 @@ BEGIN
 
 	WHILE @counter <= @num_of_iterations
 	BEGIN
-		IF @small_picture = 0
-			WITH pic (picture)
-			AS
-			(
-				/* Size of data file: 465 KBytes */
-				SELECT	picture
-				FROM	OPENROWSET(BULK N'S:\Pictures\Pic01.jpg', SINGLE_BLOB) as t1(picture)
-			)
-			INSERT INTO demo.customers
-			(c_custkey, c_mktsegment, c_nationkey, c_name, c_address, c_phone, c_acctbal, c_comment, c_companylogo)
-			SELECT	c.c_custkey,
-                    c.c_mktsegment,
-                    c.c_nationkey,
-                    c.c_name,
-                    c.c_address,
-                    c.c_phone,
-                    c.c_acctbal,
-                    c.c_comment,
-					pic.picture
-			FROM	dbo.customers AS c
-					CROSS JOIN pic
-			WHERE	c.c_custkey = @counter;
-		ELSE
-			WITH pic (picture)
-			AS
-			(
-				/* Size of data file: 465 KBytes */
-				SELECT	picture
-				FROM	OPENROWSET(BULK N'S:\Pictures\dblogo.jpg', SINGLE_BLOB) as t1(picture)
-			)
-			INSERT INTO demo.customers
-			(c_custkey, c_mktsegment, c_nationkey, c_name, c_address, c_phone, c_acctbal, c_comment, c_companylogo)
-			SELECT	c.c_custkey,
-                    c.c_mktsegment,
-                    c.c_nationkey,
-                    c.c_name,
-                    c.c_address,
-                    c.c_phone,
-                    c.c_acctbal,
-                    c.c_comment,
-					pic.picture
-			FROM	dbo.customers AS c
-					CROSS JOIN pic
-			WHERE	c.c_custkey = @counter;
+		WITH pic (picture)
+		AS
+		(
+			/*
+				If the variable @small_picture  = 0
+				we take the 400K picture (id = 2)
+				else we take the 4K picture (id = 1)
+			*/
+			SELECT	blob_binary
+			FROM	system.blob_data
+			WHERE	id = CASE WHEN @small_picture = 0
+								THEN 2
+								ELSE 1
+							END
+		)
+		INSERT INTO demo.customers
+		(c_custkey, c_mktsegment, c_nationkey, c_name, c_address, c_phone, c_acctbal, c_comment, c_companylogo)
+		SELECT	c.c_custkey,
+                c.c_mktsegment,
+                c.c_nationkey,
+                c.c_name,
+                c.c_address,
+                c.c_phone,
+                c.c_acctbal,
+                c.c_comment,
+				pic.picture
+		FROM	dbo.customers AS c
+				CROSS JOIN pic
+		WHERE	c.c_custkey = @counter;
 
 		SET	@counter += 1;
 	END
