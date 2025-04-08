@@ -89,21 +89,29 @@ FROM	dbo.get_table_pages_info
 		);
 GO
 
+DBCC TRACEON (3604);
+DBCC PAGE (0, 1, 37937, 3);
+DBCC PAGE (0, 1, 56680, 3);
+GO
+
 /*
-	There should be ~40 rows on one data page!
+	There should be ~40 -  44 rows on one data page!
 */
-SELECT	sys.fn_physLocFormatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.Customers
-WHERE	c_custkey <= 100;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment,
+		c.c_companylogo
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO
 
 /*
@@ -124,7 +132,7 @@ GO
 	;WITH pic
 	AS
 	(
-		/* Size of data file: 465 KBytes */
+		/* Size of data file: 4.582 Bytes */
 		SELECT	blob_binary
 		FROM	system.blob_data
 		WHERE	id = 1
@@ -136,16 +144,17 @@ GO
 	WHERE	c.c_custkey = 1;
 	GO
 
+	/* What happened inside the named transaction? */
 	SELECT	fd.[Current LSN],
 			fd.Operation,
 			fd.Context,
 			fd.[Log Record Length],
-			fd.AllocUnitId,
 			fd.AllocUnitName,
 			fd.[Page ID],
 			fd.[Slot ID]
 	FROM	sys.fn_dblog(NULL, NULL) AS fd
-	WHERE	Context <> 'LCX_NULL'
+	WHERE	Context <> N'LCX_NULL'
+			AND Operation <> N'LOP_INSYSXACT'
 			AND LEFT(fd.[Current LSN], LEN(fd.[Current LSN]) - 5) IN
 				(
 					SELECT	LEFT([Current LSN], LEN([Current LSN]) - 5)
@@ -185,17 +194,21 @@ GO
 /*
 	How did SQL Server store the data?
 */
-SELECT	sys.fn_physLocFormatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.Customers;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment,
+		c.c_companylogo
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO
 
 /*
@@ -203,5 +216,5 @@ GO
 	(1:57240:0)
 */
 DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 57240, 3) WITH TABLERESULTS;
+DBCC PAGE (0, 1, 64920, 3) WITH TABLERESULTS;
 GO

@@ -1,11 +1,12 @@
 /*
 	============================================================================
-	File:		0030 - inserting LOB data (default).sql
+	File:		03 - inserting LOB data (default).sql
 
-	Summary:	This script demonstrates the behavior of LOB data before
-				SQL Server 2005.
+	Summary:	This script demonstrates the default behavior of Microsoft SQL Server
+                when it handles BLOB Data which fits into the same page as the
+                record itself!
 
-	Date:		December 2024
+	Date:		April 2025
 	Session:	SQL Server - LOB Data Management
 
 	SQL Server Version: >= 2016
@@ -45,28 +46,29 @@ GO
 	itself NO LOB pages will be used!
 */
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
 
-
 SET STATISTICS IO ON;
 GO
 
+/*
+    The first query does consider the picture in c_companylogo
+*/
 SELECT	c_custkey,
         c_mktsegment,
         c_nationkey,
@@ -79,6 +81,9 @@ SELECT	c_custkey,
 FROM	demo.Customers;
 GO
 
+/*
+    ... while the second query does not!
+*/
 SELECT	c_custkey,
         c_mktsegment,
         c_nationkey,
@@ -93,18 +98,26 @@ GO
 SET STATISTICS IO OFF;
 GO
 
-
-SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.Customers;
+/*
+    Due to the fact that the picture is so small that it fits with the
+    record into ONE data page it is stored automatically with the record
+    on the same page!
+*/
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment,
+		c.c_companylogo
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO
 
 
@@ -126,48 +139,36 @@ GO
 	moved into a separate LOB space!
 */
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
 
-SET STATISTICS IO, TIME ON;
-GO
-
-SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.Customers;
-GO
-
-SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment
-FROM	demo.Customers;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment,
+		c.c_companylogo
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO

@@ -146,14 +146,14 @@ BEGIN
 		VALUES
 		(@iteration_name, @num_of_iterations, @start_date, @end_date);
 
-		SET	@Id = SCOPE_IDENTITY();
 		SELECT	name,
 				num_of_rows,
 				start_date,
 				end_date,
 				FORMAT(diff_ms, N'#,##0 ms', N'de-de') AS diff_ms
 		FROM	dbo.Runtime
-		WHERE	Id = @Id;
+		ORDER BY
+				Id;
 	COMMIT TRANSACTION;
 END
 GO

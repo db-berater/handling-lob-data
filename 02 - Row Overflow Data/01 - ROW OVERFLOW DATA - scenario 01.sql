@@ -104,27 +104,20 @@ GO
 	Let's see how many rows can fit on one data page!
 	~75 - 78 rows can fit on one data page!
 */
-SELECT	sys.fn_PhysLocFormatter(%%physloc%%)	AS	Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment
-FROM	demo.Customers;
-GO
-
-/*
-	How are data stored on a data page?
-	(1:90928:0)
-*/
-DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 90928, 3) WITH TABLERESULTS;
-GO
-
-CHECKPOINT;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO
 
 /*
@@ -205,18 +198,21 @@ GO
 CHECKPOINT;
 GO
 
-SELECT	sys.fn_PhysLocFormatter(%%physloc%%)	AS	Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment
-FROM	demo.customers;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO
-
 
 SET STATISTICS IO OFF;
 GO

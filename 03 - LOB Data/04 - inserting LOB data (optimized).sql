@@ -1,14 +1,18 @@
 /*============================================================================
-	File:		0050 - inserting LOB data (force LOB storage).sql
+	File:		04 - inserting LOB data (optimized).sql
 
-	Summary:	This script demonstrates forcing the usage of dedicated
-				usage of (B)lob Storage whether it is so small that it
-				fits to the regular row page.
+	Summary:	This script demonstrates an optimized solution to store LOB data
+				in your database.
+				When a table gets created we can define a separate filegroup for
+				the storage of tbe LOB Data.
 
-	Date:		December 2021
+				NOTE: If a LOB fits with the row into one data page the separate
+				filegroup will NOT be used!
+
+	Date:		April 2024
 	Session:	SQL Server - LOB Data Management
 
-	SQL Server Version: 2008 - 2019
+	SQL Server Version: >= 2016
 ------------------------------------------------------------------------------
 	Written by Uwe Ricken, db Berater GmbH
 
@@ -28,8 +32,7 @@ USE ERP_Demo;
 GO
 
 /*
-	To optimize workloads we can move (B)LOB data
-	to different filegroups
+	To optimize workloads we can move LOB data to different filegroups
 */
 IF NOT EXISTS (SELECT * FROM sys.filegroups WHERE name = N'blob_data')
 	ALTER DATABASE ERP_Demo
@@ -59,16 +62,16 @@ SELECT	index_id,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
 
 /*
-	We recreate the demo table to separate the LOB data in a separate filegroup.
+	We recreate the demo table to separate the LOB data
+	in a separate filegroup.
 */
 DROP TABLE IF EXISTS demo.Customers;
 GO
@@ -92,24 +95,22 @@ TEXTIMAGE_ON [blob_data];
 GO
 
 /*
-	If a blob fits into a data page it will automatically stored 
-	on the data page!
-	To prevent SQL Server storing fitting data the row store we must
-	activate this option on table level
+	The question is: Will the small pictures (~4KB) been stored in the
+	dedicated blob_data filegroup?
 */
-EXEC sp_tableoption
-	@TableNamePattern = N'demo.Customers',
-	@OptionName = 'LARGE VALUE TYPES OUT OF ROW',
-	@OptionValue = 'true';
-GO
-
 EXEC dbo.InsertCustomers
-	@iteration_name = '0050 - inserting LOB data (force LOB storage) - small blob size',
+	@iteration_name = '04 - inserting LOB data (optimized) - small blob size',
 	@num_of_iterations = 1000,
 	@small_picture = 1,
 	@drop_existing_table = 0;
 GO
 
+/*
+	Will the LOB data be stored on the separate filegroup?
+	NO - because the LOB will - by default - only be stored
+	on the dedicated filegroup when the LOB will not fit
+	on the same data page as the row itself!
+*/
 SELECT	index_id,
         index_name,
 		filegroup_name,
@@ -121,55 +122,20 @@ SELECT	index_id,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
 
 /*
-	As cool it is to separate LOB data into a different filegroup or
-	even out of row there could be some drawbacks if the avg size of
-	a LOB is less than 8.192 Bytes!
-*/
-SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.Customers
-WHERE	c_custkey <= 10;
-GO
-
-/*
-	If we force LOB data out of rows Microsoft SQL Server will create for
-	every LOB entry a NEW data page / mixed text page + text page(s)
-	This could lead to waste of memory because a page will/cannot be used by
-	multiple row entries!!!
-	(1:2338408:0)
-*/
-DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 2338408, 3) WITH TABLERESULTS;
-
-/*
-	Have a look to the LOB data on the separated data page in the LOB filegroup (3)
-	(3:76584:1)
-*/
-DBCC PAGE (0, 3, 76584, 3);
-GO
-
-/*
-	This could happen even with large LOB data!
+	If the LOB data are larger and it cannot fit on the same
+	page as the rows itself, SQL Server move the LOB to dedicated
+	LOB pages
 */
 EXEC dbo.InsertCustomers
-	@iteration_name = 'big blob size - sp_tableoption set',
+	@iteration_name = '04 - inserting LOB data (optimized) - big blog size',
 	@num_of_iterations = 1000,
 	@small_picture = 0,
 	@drop_existing_table = 0;
@@ -186,31 +152,9 @@ SELECT	index_id,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
-
-SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.Customers
-WHERE	c_custkey <= 10;
-GO
-
-/*
-	Let's follow the path to the LOB data...
-*/
-DBCC PAGE (0, 1, 2285456, 3) WITH TABLERESULTS;
-DBCC PAGE (0, 3, 85672, 3);
-DBCC PAGE (0, 3, 87008, 3);

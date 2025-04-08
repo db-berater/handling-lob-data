@@ -1,6 +1,6 @@
 /*
 	============================================================================
-		File:		01 - ROW OVERFLOW DATA scenario 02.sql
+		File:		02 - ROW OVERFLOW DATA scenario 02.sql
 
 		Summary:	This script demonstrates how Microsoft SQL Server store data
 					when the row size exceeds the maximum number of 8,060 bytes
@@ -26,13 +26,6 @@ SET XACT_ABORT ON;
 SET STATISTICS IO, TIME OFF;
 
 USE ERP_Demo;
-GO
-
-/*
-	Let's create the indexes on dbo.customers first for better performance of the demos!
-	NOTE: This function is part of the framework in ERP_Demo database
-*/
-EXEC sp_create_indexes_customers;
 GO
 
 /*
@@ -77,18 +70,6 @@ FROM	dbo.Customers
 WHERE	c_custkey <= 1000;
 GO
 
-SELECT	sys.fn_PhysLocFormatter(%%physloc%%)	AS	Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment
-FROM	demo.Customers;
-GO
-
 /*
 	We now check the page allocations for the inserted rows.
 	NOTE: This function is part of the framework in ERP_Demo database
@@ -109,6 +90,26 @@ FROM	dbo.get_table_pages_info
 			N'demo.customers',
 			1
 		);
+GO
+
+/*
+	Let's see how many rows can fit on one data page!
+	~75 - 78 rows can fit on one data page!
+*/
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO
 
 /*
@@ -151,16 +152,20 @@ GO
 CHECKPOINT;
 GO
 
-SELECT	sys.fn_PhysLocFormatter(%%physloc%%)	AS	Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment
-FROM	demo.Customers;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+ORDER BY
+		c.c_custkey;
 GO
 
 /*
@@ -214,29 +219,30 @@ GO
 	Length 24 Length (physical) 24	TimeStamp	2016804864
 	Length 24 Length (physical) 24	Type	2
 */
-SELECT	sys.fn_PhysLocFormatter(%%physloc%%)	AS	Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment
-FROM	demo.Customers
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
 WHERE	c_custkey = 1;
 GO
 
 /*
 	Let's get into the data page to see HOW the row overflow data are stored.
-	(1:38232:0)
 */
 DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 38232, 3) WITH TABLERESULTS;
+DBCC PAGE (0, 1, 73024, 3) WITH TABLERESULTS;
 GO
 
-/* TEXT_MIXED_PAGE: (1:73064:0) */
-DBCC PAGE (0, 1, 73064, 3);
+/* TEXT_MIXED_PAGE: (1:81280:0) */
+DBCC PAGE (0, 1, 81280, 3);
 GO
 
 /*
@@ -255,4 +261,7 @@ SELECT	c_custkey,
         c_comment
 FROM	demo.customers
 WHERE	c_custkey = 1;
+GO
+
+SET STATISTICS IO OFF;
 GO
