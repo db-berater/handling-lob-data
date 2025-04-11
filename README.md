@@ -19,11 +19,11 @@ The last version of the demo database can be downloaded here:
 > PARTICULAR PURPOSE.**
 
 **Note**
-The database contains a framework for all workshops / sessions from db Berater GmbH
+The database ERP_Demo contains a framework for all workshops / sessions from db Berater GmbH
 + Stored Procedures
 + User Definied Inline Functions
 
-Workshop Scripts for Session "How to handle LOB Data in Microsoft SQL Server"
+Workshop Scripts for Session "LOB Data Management"
 
 # Folder structure
 + Folder 01 - Documents and Preparation
@@ -32,3 +32,5 @@ Workshop Scripts for Session "How to handle LOB Data in Microsoft SQL Server"
 	This folder contains demo scripts for the demonstration of how Microsoft SQL Server deals with ROW OVERFLOW DATA.
 + Folder 03 - LOB Data
    This folder contains all demo scripts for the demonstration of how Microsoft SQL Server deals with LOB DATA.
++ Folder 99 - Extended Events
+   This folder contains scripts for the creation of extended events which are used for the demos

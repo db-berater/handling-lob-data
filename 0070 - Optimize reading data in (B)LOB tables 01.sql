@@ -40,20 +40,19 @@ EXEC dbo.InsertCustomers
 GO
 
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO

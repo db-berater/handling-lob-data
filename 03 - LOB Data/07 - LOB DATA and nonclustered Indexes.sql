@@ -1,12 +1,12 @@
 /*
 	============================================================================
-	File:		0090 - LOB DATA and nonclustered Indexes.sql
+	File:		07 - LOB DATA and nonclustered Indexes.sql
 
 	Summary:	This script demonstrates the behavior of LOB data
 				in a nonclustered index, which have been added to the
 				index with INCLUDE
 
-	Date:		September 2024
+	Date:		April 2025
 	Session:	SQL Server - LOB Data Management
 
 	SQL Server Version: >= 2016
@@ -50,25 +50,6 @@ IF NOT EXISTS (SELECT * FROM sys.master_files WHERE database_id = DB_ID() AND na
 	TO FILEGROUP [blob_data];
 	GO
 
-SELECT	index_id,
-        index_name,
-		filegroup_name,
-        rows,
-        type_desc,
-        total_pages,
-        used_pages,
-        data_pages,
-        space_mb,
-        first_iam_page,
-        root_page
-FROM	dbo.table_structure_info
-		(
-			N'demo.customers',
-			N'U',
-			1
-		);
-GO
-
 /*
 	We recreate the demo table to separate the LOB data in a separate filegroup.
 */
@@ -105,28 +86,45 @@ EXEC sp_tableoption
 	@OptionValue = 'true';
 GO
 
-EXEC dbo.InsertCustomers
-	@iteration_name = '0090 - LOB DATA and nonclustered Indexes - big blob size',
-	@num_of_iterations = 1000,
-	@small_picture = 0,
-	@drop_existing_table = 0;
+/*
+	Let's insert 2.000 rows into the table for demonstration purposes
+*/
+;WITH b
+AS
+(
+	SELECT	blob_binary
+	FROM	system.blob_data
+	WHERE	id = 1
+)
+INSERT INTO demo.customers WITH (TABLOCK)
+SELECT	c_custkey,
+		c_mktsegment,
+		c_nationkey,
+		c_name,
+		c_address,
+		c_phone,
+		c_acctbal,
+		c_comment,
+		b.blob_binary
+FROM	dbo.customers AS c
+		CROSS JOIN b
+WHERE	c_custkey <= 2000;
 GO
 
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
@@ -141,41 +139,20 @@ INCLUDE (c_companylogo);
 GO
 
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
-			1
-		)
-		
-UNION ALL
-
-SELECT	index_id,
-        index_name,
-		filegroup_name,
-        rows,
-        type_desc,
-        total_pages,
-        used_pages,
-        data_pages,
-        space_mb,
-        first_iam_page,
-        root_page
-FROM	dbo.table_structure_info
-		(
-			N'demo.customers',
-			N'U',
-			2
+			NULL
 		);
 GO
 

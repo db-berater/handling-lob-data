@@ -4,10 +4,10 @@
 	Summary:	This script demonstrates the problems of page splits
 				when it comes to updates on (B)LOB data.
 
-	Date:		October 2022
+	Date:		April 2025
 	Session:	SQL Server - LOB Data Management
 
-	SQL Server Version: 2008 - 2019
+	SQL Server Version: >=2016
 ------------------------------------------------------------------------------
 	Written by Uwe Ricken, db Berater GmbH
 
@@ -101,87 +101,111 @@ SELECT	c_custkey,
 FROM	dbo.customers;
 GO
 
+/*
+	What different types of data pages have been allocated
+	As long as (B)LOB data fit into the same page as the row
+	itself NO LOB pages will be used!
+*/
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
 
 
 /*
-	On what data pages are the records stored?
+    Due to the fact that the picture is so small that it fits with the
+    record into ONE data page it is stored automatically with the record
+    on the same page!
 */
-SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.customers
-WHERE	c_custkey <= 50;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment,
+		c.c_companylogo
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+WHERE	c.c_custkey <= 50
+ORDER BY
+		c.c_custkey;
 GO
 
 /*
 	Let's have a look to the page header of the page where
 	the first ~40 rows are stored:
-	(1:2219840:0)
 */
 DBCC TRACEON (3604);
-DBCC PAGE(0, 1, 2219840, 1)
+DBCC PAGE(0, 1, 9008, 1)
 
 /*
 	What will happen, if we update 10 rows with a company logo.
 	NOTE:	The table is configured to use a separate filegroup
 			for the storage of LOB data.
-			The pointer consumes 16 Bytes!
+			The pointer consumes 24 Bytes!
 */
 ;WITH pic
 AS
 (
-	SELECT	Picture
-	FROM	OPENROWSET(BULK N'S:\Pictures\dblogo.jpg', SINGLE_BLOB) as T1(Picture)
+	SELECT	blob_binary
+	FROM	system.blob_data
+	WHERE	id = 1
 )
 UPDATE	c
-SET		c.c_companylogo = p.Picture
+SET		c.c_companylogo = p.blob_binary
 FROM	demo.Customers AS c
 		CROSS JOIN pic AS p
-WHERE	c_custkey <= 50
+WHERE	c_custkey <= 20
 		AND c_custkey % 2 = 0;
 GO
 
 /*
-	On what data pages are the records stored?
+    Due to the fact that the picture is so small that it fits with the
+    record into ONE data page it is stored automatically with the record
+    on the same page!
 */
-SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
-		c_custkey,
-        c_mktsegment,
-        c_nationkey,
-        c_name,
-        c_address,
-        c_phone,
-        c_acctbal,
-        c_comment,
-        c_companylogo
-FROM	demo.customers
-WHERE	c_custkey <= 50;
+SELECT	fpl.page_id,
+		fpl.slot_id,
+		c.c_custkey,
+        c.c_mktsegment,
+        c.c_nationkey,
+        c.c_name,
+        c.c_address,
+        c.c_phone,
+        c.c_acctbal,
+        c.c_comment,
+		c.c_companylogo
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+WHERE	c.c_custkey <= 50
+ORDER BY
+		c.c_custkey;
 GO
+
+/*
+	Let's have a look to the page header of the page where
+	the first ~40 rows are stored:
+*/
+DBCC TRACEON (3604);
+DBCC PAGE(0, 1, 9008, 3)
+
 
 /*
 	How can we prevent the page splits when we must update LOB
@@ -241,21 +265,25 @@ SELECT	c_custkey,
 FROM	dbo.customers;
 GO
 
+/*
+	What different types of data pages have been allocated
+	As long as (B)LOB data fit into the same page as the row
+	itself NO LOB pages will be used!
+*/
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
@@ -286,17 +314,21 @@ GO
 ;WITH pic
 AS
 (
-	SELECT	Picture
-	FROM	OPENROWSET(BULK N'S:\Pictures\dblogo.jpg', SINGLE_BLOB) as T1(Picture)
+	SELECT	blob_binary
+	FROM	system.blob_data
+	WHERE	id = 1
 )
 UPDATE	c
-SET		c.c_companylogo = p.Picture
+SET		c.c_companylogo = p.blob_binary
 FROM	demo.Customers AS c
 		CROSS JOIN pic AS p
-WHERE	c_custkey <= 50
+WHERE	c_custkey <= 20
 		AND c_custkey % 2 = 0;
 GO
 
+/*
+	On what data pages are the records stored?
+*/
 SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
 		c_custkey,
         c_mktsegment,

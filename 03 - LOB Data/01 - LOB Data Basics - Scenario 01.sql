@@ -5,7 +5,7 @@
 	Summary:	This script demonstrates the basic behavior of usage of LOB
 				in a table
 
-	Date:		April 2024
+	Date:		April 2025
 	Session:	SQL Server - LOB Data Management
 
 	SQL Server Version: >=2016
@@ -218,3 +218,5 @@ GO
 DBCC TRACEON (3604);
 DBCC PAGE (0, 1, 64920, 3) WITH TABLERESULTS;
 GO
+
+DBCC CHECKDB('test') WITH ALL_INFOMSGS
