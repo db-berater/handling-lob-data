@@ -28,6 +28,10 @@ GO
 USE ERP_Demo;
 GO
 
+IF SCHEMA_ID(N'demo') IS NULL
+	EXEC sp_executesql N'CREATE SCHEMA demo AUTHORIZATION dbo;';
+GO
+
 DROP TABLE IF EXISTS demo.customers;
 GO
 
@@ -89,11 +93,6 @@ FROM	dbo.get_table_pages_info
 		);
 GO
 
-DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 37937, 3);
-DBCC PAGE (0, 1, 56680, 3);
-GO
-
 /*
 	There should be ~40 -  44 rows on one data page!
 */
@@ -120,13 +119,20 @@ GO
 	(1:57240:0)
 */
 DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 48648, 3) WITH TABLERESULTS;
+DBCC PAGE (0, 1, 46232, 3) WITH TABLERESULTS;
 GO
 
 CHECKPOINT;
 GO
 
-/* Let's first insert a small picture which fits on one data page */
+/*
+	Let's first insert a small picture (4582 Bytes) which fits on one data page
+	
+	Question:	What will happen?
+				a) the information of c_comment will be handled as ROW OVERFLOW
+				b) the record will/must stay complete on ONE data page
+
+*/
 BEGIN TRANSACTION UpdateRecord
 GO
 	;WITH pic
@@ -211,12 +217,6 @@ ORDER BY
 		c.c_custkey;
 GO
 
-/*
-	See, how the data are organized on the data page
-	(1:57240:0)
-*/
-DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 64920, 3) WITH TABLERESULTS;
+DROP TABLE IF EXISTS demo.customers;
+DROP SCHEMA IF EXISTS demo;
 GO
-
-DBCC CHECKDB('test') WITH ALL_INFOMSGS

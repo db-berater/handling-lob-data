@@ -31,6 +31,9 @@ GO
 USE ERP_Demo;
 GO
 
+DROP TABLE IF EXISTS demo.customers;
+GO
+
 /*
 	To optimize workloads we can move LOB data to different filegroups
 */
@@ -50,24 +53,6 @@ IF NOT EXISTS (SELECT * FROM sys.master_files WHERE database_id = DB_ID() AND na
 	)
 	TO FILEGROUP [blob_data];
 	GO
-
-SELECT	index_id,
-        index_name,
-		filegroup_name,
-        rows,
-        type_desc,
-        total_pages,
-        used_pages,
-        data_pages,
-        space_mb,
-        first_iam_page,
-        root_page
-FROM	dbo.get_table_pages_info
-		(
-			N'demo.customers',
-			1
-		);
-GO
 
 /*
 	We recreate the demo table to separate the LOB data
@@ -157,4 +142,39 @@ FROM	dbo.get_table_pages_info
 			N'demo.customers',
 			1
 		);
+GO
+
+SET STATISTICS IO ON;
+GO
+
+/*
+    The first query does consider the picture in c_companylogo
+*/
+SELECT	c_custkey,
+        c_mktsegment,
+        c_nationkey,
+        c_name,
+        c_address,
+        c_phone,
+        c_acctbal,
+        c_comment,
+        c_companylogo
+FROM	demo.Customers;
+GO
+
+/*
+    ... while the second query does not!
+*/
+SELECT	c_custkey,
+        c_mktsegment,
+        c_nationkey,
+        c_name,
+        c_address,
+        c_phone,
+        c_acctbal,
+        c_comment
+FROM	demo.Customers;
+GO
+
+SET STATISTICS IO OFF;
 GO

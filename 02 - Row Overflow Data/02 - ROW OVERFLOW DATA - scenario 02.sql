@@ -114,10 +114,11 @@ GO
 
 /*
 	Now we update the customer with the c_custkey = 1 and extend the row as follows:
-	c_name becomes a length			  256 Bytes
 	c_comment becomes a length of	8.000 bytes!
 
-	Note:	The row size will exceed the limit of 8060 bytes!
+	Question:	What will happen?
+			a) the information of c_comment will be handled as ROW OVERFLOW
+			b) the record will/must stay complete on ONE data page
 */
 BEGIN TRANSACTION UpdateRecord;
 GO
@@ -145,6 +146,7 @@ GO
 				)
 	ORDER BY
 			fd.[Current LSN];
+	GO
 
 COMMIT TRANSACTION UpdateRecord;
 GO
@@ -238,11 +240,11 @@ GO
 	Let's get into the data page to see HOW the row overflow data are stored.
 */
 DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 73024, 3) WITH TABLERESULTS;
+DBCC PAGE (0, 1, 89464, 3) WITH TABLERESULTS;
 GO
 
-/* TEXT_MIXED_PAGE: (1:81280:0) */
-DBCC PAGE (0, 1, 81280, 3);
+/* TEXT_MIXED_PAGE: (1:98664:0) */
+DBCC PAGE (0, 1, 98664, 3);
 GO
 
 /*
@@ -264,4 +266,9 @@ WHERE	c_custkey = 1;
 GO
 
 SET STATISTICS IO OFF;
+GO
+
+/* Clean the kitchen */
+DROP TABLE IF EXISTS demo.customers;
+DROP SCHEMA demo;
 GO

@@ -28,6 +28,10 @@ SET STATISTICS IO, TIME OFF;
 USE ERP_Demo;
 GO
 
+IF SCHEMA_ID(N'demo') IS NULL
+	EXEC sp_executesql N'CREATE SCHEMA demo AUTHORIZATION dbo;';
+GO
+
 /*
 	Let's create the indexes on dbo.customers first for better performance of the demos!
 
@@ -105,6 +109,16 @@ GO
 	~75 - 78 rows can fit on one data page!
 */
 SELECT	fpl.page_id,
+		COUNT_BIG(*)	AS	number_of_rows
+FROM	demo.Customers AS c
+		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
+GROUP BY
+		fpl.page_id
+ORDER BY
+		fpl.page_id;
+GO
+
+SELECT	fpl.page_id,
 		fpl.slot_id,
 		c.c_custkey,
         c.c_mktsegment,
@@ -121,11 +135,11 @@ ORDER BY
 GO
 
 /*
-	Now we update one record by entering a comment of 4,000 bytes
+	Now we update one record by entering a comment of 5,714 bytes
 
 	Question:	What will happen?
 				a) the information of c_comment will be handled as ROW OVERFLOW
-				b) the record will stay complete on ONE data page
+				b) the record will/must stay complete on ONE data page
 */
 BEGIN TRANSACTION UpdateRecord;
 GO
@@ -198,21 +212,8 @@ GO
 CHECKPOINT;
 GO
 
-SELECT	fpl.page_id,
-		fpl.slot_id,
-		c.c_custkey,
-        c.c_mktsegment,
-        c.c_nationkey,
-        c.c_name,
-        c.c_address,
-        c.c_phone,
-        c.c_acctbal,
-        c.c_comment
-FROM	demo.Customers AS c
-		CROSS APPLY sys.fn_physloccracker(%%physloc%%) AS fpl
-ORDER BY
-		c.c_custkey;
-GO
 
-SET STATISTICS IO OFF;
+/* Clean the kitchen */
+DROP TABLE IF EXISTS demo.customers;
+DROP SCHEMA demo;
 GO

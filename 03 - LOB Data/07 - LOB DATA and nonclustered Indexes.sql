@@ -87,7 +87,7 @@ EXEC sp_tableoption
 GO
 
 /*
-	Let's insert 2.000 rows into the table for demonstration purposes
+	Let's insert 1.000 rows into the table for demonstration purposes
 */
 ;WITH b
 AS
@@ -108,7 +108,7 @@ SELECT	c_custkey,
 		b.blob_binary
 FROM	dbo.customers AS c
 		CROSS JOIN b
-WHERE	c_custkey <= 2000;
+WHERE	c_custkey <= 1000;
 GO
 
 SELECT	index_id,

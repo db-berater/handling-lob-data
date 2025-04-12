@@ -143,40 +143,36 @@ GO
 	(1:2338408:0)
 */
 DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 2338408, 3) WITH TABLERESULTS;
+DBCC PAGE (0, 1, 2529456, 3) WITH TABLERESULTS;
 
 /*
 	Have a look to the LOB data on the separated data page in the LOB filegroup (3)
 	(3:76584:1)
 */
-DBCC PAGE (0, 3, 76584, 3);
+DBCC PAGE (0, 3, 76584, 1);
 GO
 
-/*
-	This could happen even with large LOB data!
-*/
 EXEC dbo.InsertCustomers
-	@iteration_name = 'big blob size - sp_tableoption set',
+	@iteration_name = '05 - inserting LOB data (force LOB storage) - big blob size',
 	@num_of_iterations = 1000,
 	@small_picture = 0,
 	@drop_existing_table = 0;
 GO
 
 SELECT	index_id,
-        index_name,
+		index_name,
 		filegroup_name,
         rows,
-        type_desc,
+		type_desc,
         total_pages,
         used_pages,
         data_pages,
         space_mb,
         first_iam_page,
         root_page
-FROM	dbo.table_structure_info
+FROM	dbo.get_table_pages_info
 		(
 			N'demo.customers',
-			N'U',
 			1
 		);
 GO
@@ -194,10 +190,3 @@ SELECT	sys.fn_physlocformatter(%%physloc%%) AS Position,
 FROM	demo.Customers
 WHERE	c_custkey <= 10;
 GO
-
-/*
-	Let's follow the path to the LOB data...
-*/
-DBCC PAGE (0, 1, 2285456, 3) WITH TABLERESULTS;
-DBCC PAGE (0, 3, 85672, 3);
-DBCC PAGE (0, 3, 87008, 3);

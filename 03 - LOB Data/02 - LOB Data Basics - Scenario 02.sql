@@ -31,6 +31,10 @@ GO
 DROP TABLE IF EXISTS demo.customers;
 GO
 
+IF SCHEMA_ID(N'demo') IS NULL
+	EXEC sp_executesql N'CREATE SCHEMA demo AUTHORIZATION dbo;';
+	GO
+
 SELECT	c_custkey,
         c_mktsegment,
         c_nationkey,
@@ -92,13 +96,19 @@ GO
 CHECKPOINT;
 GO
 
-/* Let's first insert a small picture which fits on one data page */
+/*
+	Let's insert a big picture (475.993 Bytes) for one customer
+
+	Question:	What will happen?
+				a) the information of c_comment will be handled as ROW OVERFLOW/BLOB
+				b) the record will/must stay complete on ONE data page
+*/
 BEGIN TRANSACTION UpdateRecord
 GO
 	;WITH pic
 	AS
 	(
-		/* Size of data file: 4.582 Bytes */
+		/* Size of data file: 475.993 Bytes */
 		SELECT	blob_binary
 		FROM	system.blob_data
 		WHERE	id = 2
@@ -181,7 +191,7 @@ GO
 	(1:57240:0)
 */
 DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 56680, 3) WITH TABLERESULTS;
+DBCC PAGE (0, 1, 97600, 3) WITH TABLERESULTS;
 
-DBCC PAGE (0, 1, 91705, 3);
+DBCC PAGE (0, 1, 89465, 3);
 GO

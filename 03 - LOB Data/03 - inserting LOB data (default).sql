@@ -34,7 +34,7 @@ GO
 	on the data page
 */
 EXEC	dbo.InsertCustomers
-		@iteration_name = '0030 - inserting LOB data (default) - small blob size',
+		@iteration_name = '03 - inserting LOB data (default) - small blob size',
 		@num_of_iterations = 1000,
 		@small_picture = 1,
 		@drop_existing_table = 1;
@@ -127,7 +127,7 @@ GO
 	BLOB pages
 */
 EXEC	dbo.InsertCustomers
-	@iteration_name = '0030 - inserting LOB data (default) - big blob size',
+	@iteration_name = '03 - inserting LOB data (default) - big blob size',
 	@num_of_iterations = 1000,
 	@small_picture = 0,
 	@drop_existing_table = 1;
