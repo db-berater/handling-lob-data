@@ -28,6 +28,10 @@ SET STATISTICS IO, TIME OFF;
 USE ERP_Demo;
 GO
 
+IF SCHEMA_ID(N'demo') IS NULL
+	EXEC sp_executesql N'CREATE SCHEMA demo AUTHORIZATION dbo;';
+GO
+
 /*
 	We create a demo table with a VARCHAR(8000) attribute for the storage
 	of visit descriptions.
@@ -240,11 +244,11 @@ GO
 	Let's get into the data page to see HOW the row overflow data are stored.
 */
 DBCC TRACEON (3604);
-DBCC PAGE (0, 1, 89464, 3) WITH TABLERESULTS;
+DBCC PAGE (0, 1, 48384, 3) WITH TABLERESULTS;
 GO
 
-/* TEXT_MIXED_PAGE: (1:98664:0) */
-DBCC PAGE (0, 1, 98664, 3);
+/* TEXT_MIXED_PAGE: ((1:74624:0)) */
+DBCC PAGE (0, 1, 74624, 3);
 GO
 
 /*

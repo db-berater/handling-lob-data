@@ -72,7 +72,7 @@ SELECT	page_type_desc,
 		index_id,
 		free_bytes,
 		free_bytes_offset
-FROM	sys.dm_db_page_info(DB_ID(), 1, 21624, N'DETAILED');
+FROM	sys.dm_db_page_info(DB_ID(), 1, 48384, N'DETAILED');
 GO
 
 /*
@@ -109,7 +109,7 @@ SELECT	page_type_desc,
 		index_id,
 		free_bytes,
 		free_bytes_offset
-FROM	sys.dm_db_page_info(DB_ID(), 1, 21624, N'DETAILED');
+FROM	sys.dm_db_page_info(DB_ID(), 1, 48384, N'DETAILED');
 GO
 
 /*
@@ -146,7 +146,7 @@ SELECT	page_type_desc,
 		index_id,
 		free_bytes,
 		free_bytes_offset
-FROM	sys.dm_db_page_info(DB_ID(), 1, 75288, N'DETAILED');
+FROM	sys.dm_db_page_info(DB_ID(), 1, 48384, N'DETAILED');
 GO
 
 /* Clean the kitchen */
